@@ -22,6 +22,27 @@ pipeline {
             steps {
                 sh 'mvn -s settings.xml -DskipTests install'
             }
+            post {
+                success {
+                    echo "Now Archiving."
+                    // use archiveArtifacts plugin to artifact your build, search for all .war files
+                    archiveArtifacts artifacts: '**/*.war'
+                }
+            }
+        }
+
+        stage('Test'){
+            steps {
+                // just test
+                sh 'mvn -s settings.xml test'
+            }
+        }
+
+        stage('Checkstyle Analysis'){
+            steps {
+                // check tool for your build
+                sh 'mvn -s settings.xml checkstyle:checkstyle'
+            }
         }
     }
 }
