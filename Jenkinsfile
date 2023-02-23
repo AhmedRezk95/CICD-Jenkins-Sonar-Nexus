@@ -1,3 +1,9 @@
+// for slack purposes, define a variable called COLOR_MAP
+def COLOR_MAP = [
+    'SUCCESS': 'good', 
+    'FAILURE': 'danger',
+]
+
 pipeline {
     agent any
     tools {
@@ -108,6 +114,22 @@ pipeline {
                   ]
                 )
             }
+        }
+    }
+    // add slack for notification
+    post {
+        always {
+            echo 'Slack Notifications.'
+            // set your channel name
+            slackSend channel: '#cicd',
+                /*
+                    For more information about Jenkins global variable "currentBuild" please visit the following:
+                    https://kb.novaordis.com/index.php/Jenkins_currentBuild
+
+                    COLOR_MAP Variable is defined previously in line 2
+                */
+                color: COLOR_MAP[currentBuild.currentResult],
+                message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} build ${env.BUILD_NUMBER} \n More info at: ${env.BUILD_URL}"
         }
     }
 }
