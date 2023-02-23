@@ -84,5 +84,29 @@ pipeline {
                 }
             }
         }
+
+        stage("UploadArtifact"){
+            steps{
+                // use nexus plugin in jenkins
+                nexusArtifactUploader(
+                  nexusVersion: 'nexus3',
+                  protocol: 'http',
+                  nexusUrl: "${NEXUSIP}:${NEXUSPORT}",
+                  groupId: 'QA',
+                  // artiact pattern will be versioned based on jenkins (job build number-timestamp plugin)
+                  version: "${env.BUILD_ID}-${env.BUILD_TIMESTAMP}",
+                  repository: "${RELEASE_REPO}",
+                  credentialsId: "${NEXUS_LOGIN}",
+                  // some info about the artifact that we want to upload
+                  // artifactId act as a prefix for the artifact 
+                  artifacts: [
+                    [artifactId: 'vproapp',
+                     classifier: '',
+                     file: 'target/vprofile-v2.war',
+                     type: 'war']
+                  ]
+                )
+            }
+        }
     }
 }
