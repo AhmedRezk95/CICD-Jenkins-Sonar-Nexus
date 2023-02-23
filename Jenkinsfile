@@ -92,6 +92,7 @@ pipeline {
                   nexusVersion: 'nexus3',
                   protocol: 'http',
                   nexusUrl: "${NEXUSIP}:${NEXUSPORT}",
+                  // groupId is just the Header directory that will be created in Nexus repo
                   groupId: 'QA',
                   // artiact pattern will be versioned based on jenkins (job build number-timestamp plugin)
                   version: "${env.BUILD_ID}-${env.BUILD_TIMESTAMP}",
