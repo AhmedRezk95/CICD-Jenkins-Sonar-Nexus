@@ -20,7 +20,7 @@ pipeline {
 		RELEASE_REPO = 'vprofile-hosted'
 		CENTRAL_REPO = 'vprofile-proxy'
         // private ips for nexus EC2 server
-		NEXUSIP = '172.31.29.38'
+		NEXUSIP = '172.31.88.18'
 		NEXUSPORT = '8081'
         // nexus repo names
 		NEXUS_GRP_REPO = 'vprofile-group'
