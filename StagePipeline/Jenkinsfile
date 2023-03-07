@@ -35,6 +35,12 @@ pipeline {
         appRegistry = '469653335124.dkr.ecr.us-east-1.amazonaws.com/udemy-ecr'
         // URL ECR REPO
         vprofileRegistry = 'https://469653335124.dkr.ecr.us-east-1.amazonaws.com'
+        // add ecs cluster
+        clusterECS = 'udemy-cluster'
+        // add ecs service
+        serviceECS = 'AppStageService'
+        // add ecs task
+        taskECS = 'AppStageTask'
     }
 
     stages {
@@ -138,6 +144,15 @@ pipeline {
                         dockerImage.push("$BUILD_NUMBER")
                         dockerImage.push('latest')
                     }
+                }
+            }
+        }
+
+        stage('Deploy to ECS Stage'){
+            steps{
+                // set id credential you set in jenkins for aws login
+                withAWS(credentials: 'aws', region: 'us-east-1'){
+                    sh 'aws ecs update-service --cluster ${clusterECS} --service ${serviceECS} --force-new-deployment'
                 }
             }
         }
