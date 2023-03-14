@@ -138,7 +138,7 @@ pipeline {
                 extraVars   : [
                    	USER: "admin",
                     // store nexus password in jenkins and call it here
-                    PASS: "${NEXUSPASS}",
+                    PASS: "$NEXUSPASS",
 			        nexusip: "172.31.88.18",
 			        reponame: "vprofile-hosted",
 			        groupid: "QA",
