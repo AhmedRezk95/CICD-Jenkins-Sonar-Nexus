@@ -29,6 +29,7 @@ pipeline {
         // sonarqube configuration names on jenkins
         SONARSERVER = 'sonar-server'
         SONARSCANNER = 'sonarscanner'
+        NEXUSPASS = credentials('nexuspass')
     }
 
     stages {
@@ -66,6 +67,7 @@ pipeline {
 
             steps {
                // check LECTURE #54
+               // line 72 customized name
                withSonarQubeEnv("${SONARSERVER}") {
                    sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=vprofile \
                    -Dsonar.projectName=vprofile \
@@ -108,6 +110,7 @@ pipeline {
                   // some info about the artifact that we want to upload
                   // artifactId act as a prefix for the artifact 
                   artifacts: [
+                    // customized
                     [artifactId: 'vproapp',
                      classifier: '',
                      file: 'target/vprofile-v2.war',
@@ -116,6 +119,38 @@ pipeline {
                 )
             }
         }
+
+        stage('Ansible Deployment on Staging'){
+            steps {
+                // ansible plugin
+                ansiblePlaybook([
+                // inventory
+                inventory   : 'ansible/stage.inventory',
+                // playbook
+                playbook    : 'ansible/site.yml',
+                installation: 'ansible',
+                colorized   : true,
+                // credentials installed in Jenkins
+			    credentialsId: 'appstagelogin',
+                // if you didn't set it to true it will stop the stage
+			    disableHostKeyChecking: true,
+                // extra variables for ansible playbook vars 
+                extraVars   : [
+                   	USER: "admin",
+                    // store nexus password in jenkins and call it here
+                    PASS: "${NEXUSPASS}",
+			        nexusip: "172.31.88.18",
+			        reponame: "vprofile-hosted",
+			        groupid: "QA",
+			        time: "${env.BUILD_TIMESTAMP}",
+			        build: "${env.BUILD_ID}",
+                    // customized in line 113
+                    artifactid: "vproapp",
+			        vprofile_version: "vproapp-${env.BUILD_ID}-${env.BUILD_TIMESTAMP}.war"
+                ]
+             ])
+            }
+        }     
     }
     // add slack for notification
     post {
