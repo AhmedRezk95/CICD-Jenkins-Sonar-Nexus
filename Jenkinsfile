@@ -6,126 +6,41 @@ def COLOR_MAP = [
 
 pipeline {
     agent any
-    tools {
-        maven "maven3"
-        jdk "jdk8"
-    }
     
     environment {
-        SNAP_REPO = 'vprofile-snapshot'
-        // username / password for nexus
-		NEXUS_USER = 'admin'
-		NEXUS_PASS = 'admin'
-        // nexus repo names
-		RELEASE_REPO = 'vprofile-hosted'
-		CENTRAL_REPO = 'vprofile-proxy'
-        // private ips for nexus EC2 server
-		NEXUSIP = '172.31.88.18'
-		NEXUSPORT = '8081'
-        // nexus repo names
-		NEXUS_GRP_REPO = 'vprofile-group'
-        // nexus user on jenkins
-        NEXUS_LOGIN = 'nexuslogin'
-        // sonarqube configuration names on jenkins
-        SONARSERVER = 'sonar-server'
-        SONARSCANNER = 'sonarscanner'
         NEXUSPASS = credentials('nexuspass')
     }
 
     stages {
-        stage('Build'){
+        
+        // the purpose of this stage is taking the inputs from two parameters BUILD & TIME
+        // it will be called in the following stage
+        stage('Setup parameters') {
             steps {
-                sh 'mvn -s settings.xml -DskipTests install'
-            }
-            post {
-                success {
-                    echo "Now Archiving."
-                    // use archiveArtifacts plugin to artifact your build, search for all .war files
-                    archiveArtifacts artifacts: '**/*.war'
+                script { 
+                    properties([
+                        
+                        parameters([
+                            string(
+                                defaultValue: '', 
+                                name: 'BUILD', 
+                            ),
+							string(
+                                defaultValue: '', 
+                                name: 'TIME', 
+                            )
+                        ])
+                    ])
                 }
             }
-        }
+		}
 
-        stage('Test'){
-            steps {
-                // just test
-                sh 'mvn -s settings.xml test'
-            }
-        }
-
-        stage('Checkstyle Analysis'){
-            steps {
-                // check tool for your build
-                sh 'mvn -s settings.xml checkstyle:checkstyle'
-            }
-        }
-
-        stage('Sonar Analysis') {
-            environment {
-                scannerHome = tool "${SONARSCANNER}"
-            }
-
-            steps {
-               // check LECTURE #54
-               // line 72 customized name
-               withSonarQubeEnv("${SONARSERVER}") {
-                   sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=vprofile \
-                   -Dsonar.projectName=vprofile \
-                   -Dsonar.projectVersion=1.0 \
-                   -Dsonar.sources=src/ \
-                   -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
-                   -Dsonar.junit.reportsPath=target/surefire-reports/ \
-                   -Dsonar.jacoco.reportsPath=target/jacoco.exec \
-                   -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml'''
-                   sh 'sleep 30'
-              }
-            }
-        }
-
-        stage("Quality Gate") {
-            // using sonarqube quality gate
-            // QG: timeout after one hour
-            steps {
-                timeout(time: 1, unit: 'HOURS') {
-                    // Parameter indicates whether to set pipeline to UNSTABLE if Quality Gate fails
-                    // true = set pipeline to UNSTABLE, false = don't
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-
-        stage("UploadArtifact"){
-            steps{
-                // use nexus plugin in jenkins
-                nexusArtifactUploader(
-                  nexusVersion: 'nexus3',
-                  protocol: 'http',
-                  nexusUrl: "${NEXUSIP}:${NEXUSPORT}",
-                  // groupId is just the Header directory that will be created in Nexus repo
-                  groupId: 'QA',
-                  // artiact pattern will be versioned based on jenkins (job build number-timestamp plugin)
-                  version: "${env.BUILD_ID}-${env.BUILD_TIMESTAMP}",
-                  repository: "${RELEASE_REPO}",
-                  credentialsId: "${NEXUS_LOGIN}",
-                  // some info about the artifact that we want to upload
-                  // artifactId act as a prefix for the artifact 
-                  artifacts: [
-                    // customized
-                    [artifactId: 'vproapp',
-                     classifier: '',
-                     file: 'target/vprofile-v2.war',
-                     type: 'war']
-                  ]
-                )
-            }
-        }
-
-        stage('Ansible Deployment on Staging'){
+        stage('Ansible Deployment on production'){
             steps {
                 // ansible plugin
                 ansiblePlaybook([
                 // inventory
-                inventory   : 'ansible/stage.inventory',
+                inventory   : 'ansible/prod.inventory',
                 // playbook
                 playbook    : 'ansible/site.yml',
                 installation: 'ansible',
@@ -133,7 +48,7 @@ pipeline {
                 // credentials installed in Jenkins
 			    credentialsId: 'appstagelogin',
                 // if you didn't set it to true it will stop the stage
-			    disableHostKeyChecking: true,
+			    disableHostKeyChecking: true,   
                 // extra variables for ansible playbook vars 
                 extraVars   : [
                    	USER: "admin",
@@ -142,11 +57,13 @@ pipeline {
 			        nexusip: "172.31.88.18",
 			        reponame: "vprofile-hosted",
 			        groupid: "QA",
-			        time: "${env.BUILD_TIMESTAMP}",
-			        build: "${env.BUILD_ID}",
+                    // PLEASE BE ADVISED THE BELOW PARAMETERS ARE NOT EXISTED
+                    // these WILL take it from the user
+			        time: "${env.TIME}",
+			        build: "${env.BUILD}",
                     // customized in line 113
                     artifactid: "vproapp",
-			        vprofile_version: "vproapp-${env.BUILD_ID}-${env.BUILD_TIMESTAMP}.war"
+			        vprofile_version: "vproapp-${env.BUILD}-${env.TIME}.war"
                 ]
              ])
             }
