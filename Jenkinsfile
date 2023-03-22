@@ -23,7 +23,7 @@ pipeline {
         // BEANSTALK APP NAME
         AWS_EB_APP_NAME = 'jenkins-beanstalk-app'
         // BEANSTALK APP ENV
-        AWS_EB_ENVIRONMENT = 'Jenkinsbeanstalkapp-env'
+        AWS_EB_ENVIRONMENT = 'Jenkinsbeanstalkapp-prod-env'
         // BEANSTALK APP VERSIONS
         AWS_EB_APP_VERSION = "${buildNumber}"
     }
