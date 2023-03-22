@@ -129,7 +129,7 @@ pipeline {
 
         stage('Deploy to Stage Bean'){
           steps {
-            withAWS(credentials: 'aws', region: 'us-west-1') {
+            withAWS(credentials: 'aws', region: 'us-east-1') {
                // copy artifact from Jenkins server to S3
                sh 'aws s3 cp ./target/vprofile-v2.war s3://$AWS_S3_BUCKET/$ARTIFACT_NAME'
                // Create beanstalk version from Artifact
