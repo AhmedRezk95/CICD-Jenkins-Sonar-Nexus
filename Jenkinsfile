@@ -29,6 +29,16 @@ pipeline {
         // sonarqube configuration names on jenkins
         SONARSERVER = 'sonar-server'
         SONARSCANNER = 'sonarscanner'
+        // Set Artifact Name
+        ARTIFACT_NAME = "vprofile-v${BUILD_ID}.war"
+        // Set S3 Bucket
+        AWS_S3_BUCKET = 'cicd-jenkins-beanstalk'
+        // BEANSTALK APP NAME
+        AWS_EB_APP_NAME = 'jenkins-beanstalk-app'
+        // BEANSTALK APP ENV
+        AWS_EB_ENVIRONMENT = 'Jenkinsbeanstalkapp-env'
+        // BEANSTALK APP VERSIONS
+        AWS_EB_APP_VERSION = "${BUILD_ID}"
     }
 
     stages {
@@ -115,6 +125,19 @@ pipeline {
                   ]
                 )
             }
+        }
+
+        stage('Deploy to Stage Bean'){
+          steps {
+            withAWS(credentials: 'aws', region: 'us-west-1') {
+               // copy artifact from Jenkins server to S3
+               sh 'aws s3 cp ./target/vprofile-v2.war s3://$AWS_S3_BUCKET/$ARTIFACT_NAME'
+               // Create beanstalk version from Artifact
+               sh 'aws elasticbeanstalk create-application-version --application-name $AWS_EB_APP_NAME --version-label $AWS_EB_APP_VERSION --source-bundle S3Bucket=$AWS_S3_BUCKET,S3Key=$ARTIFACT_NAME'
+               // update beanstalk environment with the new version
+               sh 'aws elasticbeanstalk update-environment --application-name $AWS_EB_APP_NAME --environment-name $AWS_EB_ENVIRONMENT --version-label $AWS_EB_APP_VERSION'
+            }
+          }
         }
     }
     // add slack for notification
